@@ -8,14 +8,17 @@ function indent() {
   esac
 }
 
-BRANCH=$1
-SRC=/tmp/gummi/$BRANCH
+SRC=$1
 PACKS=$(find /buildpacks/ -mindepth 1 -maxdepth 1 -type d)
 
 echo '> Detecting platform'
-#echo $PACKS
+
 for pack in $PACKS
 do
+    if [ ! -f "$pack/bin/detect" ]; then
+	continue
+    fi
+
     result=$($pack/bin/detect $SRC)
     if [ $? == 0 ]; then
 	echo "> Detected platform: $result"
@@ -23,33 +26,33 @@ do
 	break
     fi
 done
-exit 1
-$PACK/bin/compile $SRC
-
-
+#echo "$PATH dddd"
+. $PACK/bin/compile $SRC
+#echo "xxxxxx" $PATH
+#exit 1
 
 
 TOOLS=/buildpacks/nodejs/tools
 NODE_PATH=$TOOLS/node/bin
 
-PATH=$NODE_PATH:$PATH
+export PATH=$NODE_PATH:$PATH
 NODE=$NODE_PATH/node
 NPM="$NODE $TOOLS/node/bin/npm"
 
 
 cd $SRC
-
+rm -rf tmp
 mkdir -p tmp
+chmod 777 tmp
 echo "> Sources compiled"
-
 echo "> Stopping all daemons"
 forever stopall > /dev/null
 FOREVER_LOG=$SRC/tmp/for.log
 rm -f $FOREVER_LOG
 echo "> Starting forewoman in forever"
 forever start  -l $FOREVER_LOG  `which forewoman` -f $SRC/Procfile -l $SRC/tmpa start > /dev/null
-#`which forewoman` -f $SRC/Procfile -l $SRC/tmpa/ start
-
+#`which forewoman` -f $SRC/Procfile -l $SRC/tmp/ start
+chmod 777 $FOREVER_LOG
 forever logs 0 | sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g" | indent
 IP=`ifconfig eth0 | awk '/inet addr/ {split ($2,A,":"); print A[2]}'`
 echo "> Host IP $IP"

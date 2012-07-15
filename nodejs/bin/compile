@@ -1,5 +1,13 @@
 #!/bin/bash
 
+function indent() {
+  c='s/^/       /'
+  case $(uname) in
+    Darwin) sed -l "$c";;
+    *)      sed -u "$c";;
+  esac
+}
+
 TOOLS=/buildpacks/nodejs/tools
 NODE_PATH=$TOOLS/node/bin
 
@@ -23,33 +31,6 @@ SRC=$1 # /tmp/gummi/$BRANCH
 PROCFILE=$SRC/Procfile
 
 cd $SRC
-$NPM install 
-
-exit 0
+$NPM install 2>&1 | indent
 
 
-#$NPM install forewoman 
-#$NPM install forever -g
-mkdir -p tmp
-mkdir -p tmpa
-echo "> Packages installed"
-echo "> Stopping all deamons"
-forever stopall > /dev/null
-echo "> Reloading procfile"
-
-forever start -a -l $SRC/tmp/for.log  `which forewoman` -f $SRC/Procfile -l $SRC/tmpa start > /dev/null
-#`which forewoman` -f $SRC/Procfile -l $SRC/tmpa/ start
-
-forever logs 0 | sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g"
-IP=`ifconfig eth0 | awk '/inet addr/ {split ($2,A,":"); print A[2]}'`
-echo "> Host IP $IP"
-echo "> Done."
-exit 0
-#forewoman start
-#./node_modules/forewoman/bin/forewoman start
-
-#echo "> Packages installed"
-
-#WEB=$(cat $PROCFILE | sed 's/^web://')
-#echo $WEB
-#$WEB
