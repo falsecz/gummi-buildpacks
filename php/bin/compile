@@ -1,0 +1,55 @@
+#!/bin/bash
+
+TOOLS=/buildpacks/nodejs/tools
+NODE_PATH=$TOOLS/node/bin
+
+PATH=$NODE_PATH:$PATH
+NODE=$NODE_PATH/node
+NPM="$NODE $TOOLS/node/bin/npm"
+
+#FOREWOMAN=`$NPM list` # | grep forewoman | wc -l `
+#echo $FOREWOMAN
+#exit 1
+#if [ $FOREWOMAN -eq 0 ]
+#then
+#    echo ">sdasdasd"
+#fi
+
+echo "> Node.js buildpack $($NODE -v) | npm@$($NPM -v) "
+
+#BRANCH=$1
+
+SRC=$1 # /tmp/gummi/$BRANCH
+PROCFILE=$SRC/Procfile
+
+cd $SRC
+$NPM install 
+
+exit 0
+
+
+#$NPM install forewoman 
+#$NPM install forever -g
+mkdir -p tmp
+mkdir -p tmpa
+echo "> Packages installed"
+echo "> Stopping all deamons"
+forever stopall > /dev/null
+echo "> Reloading procfile"
+
+forever start -a -l $SRC/tmp/for.log  `which forewoman` -f $SRC/Procfile -l $SRC/tmpa start > /dev/null
+#`which forewoman` -f $SRC/Procfile -l $SRC/tmpa/ start
+
+forever logs 0 | sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g"
+IP=`ifconfig eth0 | awk '/inet addr/ {split ($2,A,":"); print A[2]}'`
+echo "> Host IP $IP"
+echo "> Done."
+exit 0
+#forewoman start
+#./node_modules/forewoman/bin/forewoman start
+
+#echo "> Packages installed"
+
+#WEB=$(cat $PROCFILE | sed 's/^web://')
+#echo $WEB
+#$WEB

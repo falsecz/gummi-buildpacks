@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+
+function indent() {
+  c='s/^/       /'
+  case $(uname) in
+    Darwin) sed -l "$c";;
+    *)      sed -u "$c";;
+  esac
+}
+
+BRANCH=$1
+SRC=/tmp/gummi/$BRANCH
+PACKS=$(find /buildpacks/ -mindepth 1 -maxdepth 1 -type d)
+
+echo '> Detecting platform'
+#echo $PACKS
+for pack in $PACKS
+do
+    result=$($pack/bin/detect $SRC)
+    if [ $? == 0 ]; then
+	echo "> Detected platform: $result"
+	PACK=$pack
+	break
+    fi
+done
+exit 1
+$PACK/bin/compile $SRC
+
+
+
+
+TOOLS=/buildpacks/nodejs/tools
+NODE_PATH=$TOOLS/node/bin
+
+PATH=$NODE_PATH:$PATH
+NODE=$NODE_PATH/node
+NPM="$NODE $TOOLS/node/bin/npm"
+
+
+cd $SRC
+
+mkdir -p tmp
+echo "> Sources compiled"
+
+echo "> Stopping all daemons"
+forever stopall > /dev/null
+FOREVER_LOG=$SRC/tmp/for.log
+rm -f $FOREVER_LOG
+echo "> Starting forewoman in forever"
+forever start  -l $FOREVER_LOG  `which forewoman` -f $SRC/Procfile -l $SRC/tmpa start > /dev/null
+#`which forewoman` -f $SRC/Procfile -l $SRC/tmpa/ start
+
+forever logs 0 | sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g" | indent
+IP=`ifconfig eth0 | awk '/inet addr/ {split ($2,A,":"); print A[2]}'`
+echo "> Host IP $IP"
+echo "> Done."
+exit 0
